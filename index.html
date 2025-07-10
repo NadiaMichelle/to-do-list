@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List con BD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text y="28" font-size="24">🧸</text></svg>'), auto;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ffeef8 0%, #f8d7da 50%, #ffc1e3 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(255, 182, 193, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 192, 203, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 70%, rgba(255, 228, 225, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            box-shadow: 0 20px 40px rgba(255, 182, 193, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            animation: slideIn 0.5s ease-out;
+            border: 3px solid rgba(255, 192, 203, 0.3);
+            position: relative;
+        }
+
+        .container::before {
+            content: "🧸";
+            position: absolute;
+            top: -15px;
+            right: 20px;
+            font-size: 2em;
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            padding: 10px;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(255, 20, 147, 0.3);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(255, 105, 180, 0.2);
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        input[type="text"], input[type="date"] {
+            padding: 15px 20px;
+            border: 2px solid #ffb6c1;
+            border-radius: 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #fff0f5, #ffe4e1);
+            outline: none;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text y="28" font-size="20">🧸</text></svg>'), text;
+        }
+
+        input[type="text"]:focus, input[type="date"]:focus {
+            border-color: #ff69b4;
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .add-button {
+            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text y="28" font-size="24">🐻</text></svg>'), pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .add-button::before {
+            content: "🧸";
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2em;
+        }
+
+        .add-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 105, 180, 0.5);
+        }
+
+        .add-button:active {
+            transform: translateY(0);
+        }
+
+        #lista {
+            list-style: none;
+            padding: 0;
+        }
+
+        .task-item {
+            background: white;
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            animation: taskSlideIn 0.3s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes taskSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .task-item.completed {
+            background: #f8f9fa;
+            opacity: 0.7;
+        }
+
+        .task-item.completed .task-description {
+            text-decoration: line-through;
+            color: #666;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .task-description {
+            font-size: 18px;
+            font-weight: 600;
+            color: #8b4585;
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+
+        .task-date {
+            font-size: 14px;
+            color: #c56a85;
+            background: linear-gradient(135deg, #ffb6c1, #ffc0cb);
+            padding: 4px 8px;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .task-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text y="28" font-size="24">🐻</text></svg>'), pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .complete-button {
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            color: white;
+            border: 1px solid #ff69b4;
+        }
+
+        .complete-button:hover {
+            background: linear-gradient(135deg, #ff1493, #dc143c);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
+        }
+
+        .delete-button {
+            background: linear-gradient(135deg, #ff8fab, #ffb3c1);
+            color: #8b4585;
+            border: 1px solid #ff8fab;
+        }
+
+        .delete-button:hover {
+            background: linear-gradient(135deg, #ff69b4, #ff8fab);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 139, 171, 0.3);
+        }
+
+        .task-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #c56a85;
+            font-size: 18px;
+        }
+
+        .empty-state::before {
+            content: "🧸";
+            display: block;
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-30px);
+            }
+            60% {
+                transform: translateY(-15px);
+            }
+        }
+
+        .task-counter {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #c56a85;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .task-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .task-date {
+                align-self: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧸 Lista de Tareas Rosa 🧸</h1>
+        
+        <div class="input-container">
+            <input type="text" id="descripcion" placeholder="🧸 ¿Qué necesitas hacer hoy?">
+            <input type="date" id="fecha">
+            <button class="add-button" onclick="agregarTarea()">🧸 Agregar Tarea</button>
+        </div>
+        
+        <div class="task-counter" id="contador">
+            Total de tareas: 0
+        </div>
+        
+        <ul id="lista">
+            <div class="empty-state">
+                ¡Tu osito está esperando la primera tarea!
+            </div>
+        </ul>
+    </div>
+
+    <script>
+        // Funciones para interactuar con la base de datos
+        async function cargarTareas() {
+            try {
+                const response = await fetch('api.php');
+                const tareas = await response.json();
+                return tareas;
+            } catch (error) {
+                console.error('Error al cargar tareas:', error);
+                return [];
+            }
+        }
+
+        async function agregarTarea() {
+            const descripcion = document.getElementById('descripcion').value.trim();
+            const fecha = document.getElementById('fecha').value;
+            
+            if (!descripcion) {
+                alert('Por favor, ingresa una descripción para la tarea 🧸');
+                return;
+            }
+            
+            const nuevaTarea = {
+                descripcion: descripcion,
+                fecha_limite: fecha || new Date().toISOString().split('T')[0]
+            };
+            
+            try {
+                const response = await fetch('api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(nuevaTarea)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Limpiar inputs
+                    document.getElementById('descripcion').value = '';
+                    document.getElementById('fecha').value = '';
+                    
+                    // Recargar tareas
+                    await renderizarTareas();
+                } else {
+                    alert('Error al agregar la tarea: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión con la base de datos');
+            }
+        }
+
+        async function completarTarea(id) {
+            try {
+                // Primero obtenemos el estado actual
+                const response = await fetch('api.php');
+                const tareas = await response.json();
+                const tarea = tareas.find(t => t.id == id);
+                
+                if (!tarea) return;
+                
+                const nuevoEstado = tarea.completada == 1 ? 0 : 1;
+                
+                const updateResponse = await fetch('api.php', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id,
+                        completada: nuevoEstado
+                    })
+                });
+                
+                const result = await updateResponse.json();
+                
+                if (result.success) {
+                    await renderizarTareas();
+                } else {
+                    alert('Error al actualizar la tarea: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión con la base de datos');
+            }
+        }
+
+        async function eliminarTarea(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta tarea? 🧸💔')) {
+                try {
+                    const response = await fetch('api.php', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ id: id })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        await renderizarTareas();
+                    } else {
+                        alert('Error al eliminar la tarea: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error de conexión con la base de datos');
+                }
+            }
+        }
+
+        function formatearFecha(fecha) {
+            const opciones = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(fecha).toLocaleDateString('es-ES', opciones);
+        }
+
+        async function renderizarTareas() {
+            const lista = document.getElementById('lista');
+            const tareas = await cargarTareas();
+            
+            if (tareas.length === 0) {
+                lista.innerHTML = '<div class="empty-state">¡Tu osito está esperando la primera tarea!</div>';
+                actualizarContador(0, 0);
+                return;
+            }
+            
+            lista.innerHTML = tareas.map(tarea => `
+                <li class="task-item ${tarea.completada == 1 ? 'completed' : ''}">
+                    <div class="task-header">
+                        <div class="task-description">${tarea.descripcion}</div>
+                        <div class="task-date">${formatearFecha(tarea.fecha_limite)}</div>
+                    </div>
+                    <div class="task-actions">
+                        <button class="task-button complete-button" onclick="completarTarea(${tarea.id})">
+                            ${tarea.completada == 1 ? '🧸 Reactivar' : '🐻 Completar'}
+                        </button>
+                        <button class="task-button delete-button" onclick="eliminarTarea(${tarea.id})">
+                            🗑️ Eliminar
+                        </button>
+                    </div>
+                </li>
+            `).join('');
+            
+            const completadas = tareas.filter(t => t.completada == 1).length;
+            actualizarContador(tareas.length, completadas);
+        }
+
+        function actualizarContador(total, completadas) {
+            const contador = document.getElementById('contador');
+            contador.textContent = `Total de tareas: ${total} | Completadas: ${completadas}`;
+        }
+
+        // Permitir agregar tareas con Enter
+        document.getElementById('descripcion').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                agregarTarea();
+            }
+        });
+
+        // Cargar tareas al iniciar la página
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Establecer fecha de hoy por defecto
+            document.getElementById('fecha').valueAsDate = new Date();
+            
+            // Cargar tareas existentes
+            await renderizarTareas();
+        });
+    </script>
+</body>
+</html>
